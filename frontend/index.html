@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BuyWise — AI Shopping Agent</title>
+  <meta name="description" content="BuyWise is your AI shopping assistant that finds the best products, compares them, and helps you buy smart.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛒</text></svg>">
+  <link rel="stylesheet" href="/static/css/root.css">
+
+  <style>
+    /* ── Landing page styles ── */
+    .landing { min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* Nav */
+    .nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 var(--space-xl); height: 70px;
+      background: var(--glass-bg); backdrop-filter: var(--glass-blur);
+      border-bottom: 1px solid var(--clr-border);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-logo {
+      font-size: var(--text-xl); font-weight: 800; letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #fff, var(--clr-primary-light));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .nav-cta { font-size: var(--text-sm); }
+
+    /* Hero */
+    .hero {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: var(--space-2xl) var(--space-lg);
+      text-align: center; gap: var(--space-lg);
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 70% 50% at 50% 30%,
+        rgba(99,102,241,0.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: var(--space-sm);
+      padding: 6px 18px; border-radius: var(--radius-full);
+      border: 1px solid rgba(99,102,241,0.35);
+      background: rgba(99,102,241,0.1);
+      font-size: var(--text-xs); font-weight: 600;
+      color: var(--clr-primary-light); letter-spacing: 0.05em;
+      animation: fadeIn 0.6s ease;
+    }
+    .hero-title {
+      font-size: clamp(2.4rem, 7vw, 4.5rem);
+      font-weight: 900; line-height: 1.1; letter-spacing: -0.03em;
+      color: var(--clr-text);
+      animation: fadeIn 0.8s ease 0.1s both;
+    }
+    .hero-title .gradient {
+      background: linear-gradient(135deg, var(--clr-primary-light), #a78bfa, var(--clr-accent));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero-subtitle {
+      max-width: 580px; font-size: var(--text-lg);
+      color: var(--clr-text-muted); line-height: 1.7;
+      animation: fadeIn 0.8s ease 0.2s both;
+    }
+    .hero-actions {
+      display: flex; gap: var(--space-md);
+      animation: fadeIn 0.8s ease 0.3s both;
+    }
+
+    /* Demo chips */
+    .demo-section {
+      background: var(--clr-surface);
+      border-top: 1px solid var(--clr-border);
+      padding: var(--space-2xl) var(--space-lg);
+      text-align: center;
+    }
+    .demo-section h2 { font-size: var(--text-xl); margin-bottom: var(--space-sm); }
+    .demo-section p { margin-bottom: var(--space-lg); }
+    .demo-chips {
+      display: flex; flex-wrap: wrap; gap: var(--space-sm);
+      justify-content: center; max-width: 700px; margin: 0 auto var(--space-xl);
+    }
+    .demo-chip {
+      padding: 10px 20px;
+      background: var(--clr-surface-2); border: 1px solid var(--clr-border);
+      border-radius: var(--radius-full); font-size: var(--text-sm);
+      color: var(--clr-text-muted); cursor: pointer;
+      transition: all var(--transition-fast); text-decoration: none;
+      display: inline-block;
+    }
+    .demo-chip:hover {
+      background: var(--clr-surface-3); border-color: var(--clr-primary);
+      color: var(--clr-primary-light); transform: translateY(-2px);
+      text-decoration: none;
+    }
+
+    /* Features */
+    .features {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: var(--space-lg); padding: var(--space-2xl) var(--space-xl);
+      max-width: 1100px; margin: 0 auto;
+    }
+    .feature-card {
+      background: var(--glass-bg); border: 1px solid var(--clr-border);
+      border-radius: var(--radius-lg); padding: var(--space-xl);
+      transition: all var(--transition-base); backdrop-filter: var(--glass-blur);
+    }
+    .feature-card:hover { border-color: var(--clr-primary); transform: translateY(-3px); }
+    .feature-icon { font-size: 36px; margin-bottom: var(--space-md); }
+    .feature-card h3 { font-size: var(--text-md); margin-bottom: var(--space-sm); }
+    .feature-card p { font-size: var(--text-sm); }
+
+    /* Footer */
+    footer {
+      padding: var(--space-lg) var(--space-xl);
+      border-top: 1px solid var(--clr-border);
+      text-align: center; font-size: var(--text-sm);
+      color: var(--clr-text-dim);
+    }
+
+    @media (max-width: 600px) {
+      .hero-actions { flex-direction: column; width: 100%; }
+      .hero-actions .btn { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="landing">
+    <!-- Nav -->
+    <nav class="nav">
+      <div class="nav-logo">🛒 BuyWise</div>
+      <a href="/chat/" class="btn btn-primary btn-sm nav-cta" id="header-cta">Start Shopping →</a>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-badge">✨ Powered by Gemini AI</div>
+      <h1 class="hero-title">
+        Shop smarter with<br>
+        <span class="gradient">AI that searches,<br>compares & buys</span>
+      </h1>
+      <p class="hero-subtitle">
+        Tell BuyWise what you need in plain English. It searches products,
+        compares specs and prices, and places the order — but only when <em>you</em> say yes.
+      </p>
+      <div class="hero-actions">
+        <a href="/chat/" class="btn btn-primary btn-lg" id="hero-cta">
+          🛒 Start Shopping
+        </a>
+        <a href="#features" class="btn btn-ghost btn-lg" id="learn-more-btn">
+          Learn More ↓
+        </a>
+      </div>
+    </section>
+
+    <!-- Demo queries -->
+    <section class="demo-section">
+      <h2>Just say what you want</h2>
+      <p>Try one of these to get started immediately</p>
+      <div class="demo-chips">
+        <a href="/chat/" class="demo-chip" id="demo-1">🎧 Best earbuds under ₹3,000</a>
+        <a href="/chat/" class="demo-chip" id="demo-2">💻 Budget laptop for coding</a>
+        <a href="/chat/" class="demo-chip" id="demo-3">📱 Good phone under ₹15,000</a>
+        <a href="/chat/" class="demo-chip" id="demo-4">🍗 Air fryer for a 3-person family</a>
+        <a href="/chat/" class="demo-chip" id="demo-5">⌚ Smartwatch with calling feature</a>
+        <a href="/chat/" class="demo-chip" id="demo-6">🔋 Phone with best battery life</a>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="features" id="features">
+      <div class="feature-card animate-fade-in">
+        <div class="feature-icon">🔍</div>
+        <h3>Smart Product Search</h3>
+        <p>Understands natural-language requests and searches across categories with price filters and spec matching.</p>
+      </div>
+      <div class="feature-card animate-fade-in">
+        <div class="feature-icon">⚖️</div>
+        <h3>Honest Comparisons</h3>
+        <p>Generates side-by-side pros/cons with verdicts based on your priorities — not paid promotions.</p>
+      </div>
+      <div class="feature-card animate-fade-in">
+        <div class="feature-icon">✅</div>
+        <h3>Buy-Only-When-You-Say</h3>
+        <p>The agent never places an order without your explicit confirmation. You're always in control.</p>
+      </div>
+      <div class="feature-card animate-fade-in">
+        <div class="feature-icon">💬</div>
+        <h3>Follow-Up Conversations</h3>
+        <p>"Find cheaper", "show me options with ANC" — the agent remembers context and refines searches.</p>
+      </div>
+    </section>
+
+    <footer>
+      Built with Django + Gemini AI · <strong>BuyWise</strong> — Mock checkout, real recommendations.
+    </footer>
+  </div>
+</body>
+</html>
