@@ -7,11 +7,11 @@
   <meta name="description" content="Chat with BuyWise to find, compare, and buy the best products.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛒</text></svg>">
 
-  <!-- Stylesheets -->
   <link rel="stylesheet" href="/static/css/root.css">
   <link rel="stylesheet" href="/static/css/chat.css">
   <link rel="stylesheet" href="/static/css/cards.css">
   <link rel="stylesheet" href="/static/css/modal.css">
+  <link rel="stylesheet" href="/static/css/video.css">
 </head>
 <body>
 <div class="chat-page">
@@ -25,8 +25,7 @@
     </div>
     <div class="chat-header-actions">
       <div class="status-pill" id="status-pill">
-        <div class="dot"></div>
-        Connecting…
+        <div class="dot"></div>Connecting…
       </div>
       <button class="btn btn-ghost btn-sm" id="new-chat-btn">+ New Chat</button>
       <a href="/" class="btn btn-ghost btn-sm" id="home-btn">Home</a>
@@ -39,31 +38,36 @@
     <!-- Messages column -->
     <main class="messages-area" id="messages-area">
 
-      <!-- Welcome screen (shown before first message) -->
+      <!-- Welcome screen -->
       <div class="welcome-screen" id="welcome-screen">
         <div class="hero-icon">🛒</div>
         <h2 id="welcome-greeting">Good morning! I'm BuyWise ✨</h2>
-        <p>Your AI shopping assistant. Tell me what you're looking for — I'll find the best options, compare them, and help you buy smart.</p>
+        <p>Your AI shopping assistant. Ask anything, paste a product video, and buy with one tap.</p>
 
         <div class="suggestion-chips">
-          <div class="chip" data-query="Best wireless earbuds under ₹5000" id="chip-1">
-            🎧 Earbuds under ₹5,000
-          </div>
-          <div class="chip" data-query="Budget laptop for coding under ₹45000" id="chip-2">
-            💻 Coding laptop
-          </div>
-          <div class="chip" data-query="Good smartphone under ₹15000" id="chip-3">
-            📱 Phone under ₹15k
-          </div>
-          <div class="chip" data-query="Air fryer for a family of 3" id="chip-4">
-            🍗 Air fryer
-          </div>
-          <div class="chip" data-query="Smartwatch with Bluetooth calling under ₹3000" id="chip-5">
-            ⌚ Smartwatch with calling
-          </div>
-          <div class="chip" data-query="Best over-ear headphones under ₹3000" id="chip-6">
-            🎵 Over-ear headphones
-          </div>
+          <div class="chip" data-query="Best wireless earbuds under ₹5000" id="chip-1">🎧 Earbuds under ₹5k</div>
+          <div class="chip" data-query="Budget laptop for coding under ₹45000" id="chip-2">💻 Coding laptop</div>
+          <div class="chip" data-query="Good smartphone under ₹15000" id="chip-3">📱 Phone under ₹15k</div>
+          <div class="chip" data-query="Air fryer for a family of 3" id="chip-4">🍗 Air fryer</div>
+          <div class="chip" data-query="Smartwatch with Bluetooth calling under ₹3000" id="chip-5">⌚ Smartwatch</div>
+          <div class="chip" data-query="Best over-ear headphones under ₹3000" id="chip-6">🎵 Headphones</div>
+        </div>
+
+        <!-- Video analysis hint -->
+        <div style="
+          margin-top: var(--space-md);
+          padding: 12px 20px;
+          background: var(--clr-surface-2);
+          border: 1px solid var(--clr-border);
+          border-radius: var(--radius-lg);
+          font-size: var(--text-sm);
+          color: var(--clr-text-muted);
+          display: flex;
+          align-items: center;
+          gap: var(--space-sm)
+        ">
+          <span style="font-size:20px">🎬</span>
+          <span>Paste a <strong style="color:var(--clr-primary-light)">YouTube / Instagram Reel / TikTok</strong> link below to identify and shop the product in the video!</span>
         </div>
       </div>
 
@@ -73,19 +77,17 @@
     <aside class="chat-sidebar" id="chat-sidebar">
       <div class="sidebar-header">📦 Your Orders</div>
       <div class="sidebar-content" id="orders-sidebar-list">
-        <div class="empty-state" id="sidebar-empty">
-          No orders yet.<br>Buy something!
-        </div>
+        <div class="empty-state" id="sidebar-empty">No orders yet.<br>Buy something!</div>
       </div>
     </aside>
 
   </div><!-- /.chat-body -->
 
-  <!-- ─── Compare bar (floating) ─────────────────────────────────────────── -->
+  <!-- ─── Compare floating bar ───────────────────────────────────────────── -->
   <div id="compare-bar" style="
     display: none;
     position: fixed;
-    bottom: 90px;
+    bottom: 116px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 200;
@@ -93,7 +95,6 @@
     border: 1px solid var(--clr-primary);
     border-radius: var(--radius-full);
     padding: 10px 16px;
-    display: none;
     align-items: center;
     gap: var(--space-md);
     box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 20px var(--clr-primary-glow);
@@ -107,18 +108,69 @@
   </div>
 
   <!-- ─── Input Area ──────────────────────────────────────────────────────── -->
-  <footer class="input-area">
-    <div class="input-wrapper">
-      <textarea
-        id="chat-input"
-        placeholder="Ask me anything — e.g. 'Find me earbuds under ₹3000 with good bass'"
-        rows="1"
-        aria-label="Chat input"
-      ></textarea>
-      <button id="send-btn" aria-label="Send message">➤</button>
+  <footer class="input-area" style="position:relative;">
+
+    <!-- 🎬 Video Panel (slides up above the input) -->
+    <div class="video-panel hidden" id="video-panel">
+      <div class="video-panel-header">
+        <span class="video-panel-title">🎬 Analyze a Product Video</span>
+        <button class="video-panel-close" onclick="Video.closePanel()">×</button>
+      </div>
+
+      <!-- URL input row -->
+      <div class="video-url-row">
+        <input
+          type="text"
+          id="video-url-input"
+          placeholder="Paste YouTube / Instagram Reel / TikTok URL…"
+          autocomplete="off"
+        >
+        <button class="btn btn-primary btn-sm" id="video-url-submit">🔍 Analyze</button>
+      </div>
+
+      <div class="video-url-hint" style="margin-bottom:var(--space-md)">
+        <span>📺 YouTube</span>
+        <span>📸 Instagram Reels</span>
+        <span>🎵 TikTok</span>
+        <span>📁 Upload video</span>
+      </div>
+
+      <!-- File drop zone -->
+      <div class="video-upload-area" id="video-upload-area">
+        <input type="file" id="video-file-input" accept="video/mp4,video/webm,.mp4,.webm,.mov" style="display:none">
+        <div class="video-upload-icon">📁</div>
+        <div class="video-upload-label">Drop a video file here, or click to upload</div>
+        <div id="video-file-label" style="color:var(--clr-primary-light);font-size:var(--text-xs);margin-top:4px"></div>
+        <div class="video-upload-formats">MP4 · WebM · MOV — max 50MB</div>
+      </div>
+
+      <!-- Loading state -->
+      <div class="video-loading" id="video-loading">
+        <div class="spinner"></div>
+        <span id="video-loading-msg">Analyzing video with Gemini AI…</span>
+      </div>
     </div>
+
+    <!-- Input wrapper row -->
+    <div style="display:flex;align-items:flex-end;gap:var(--space-sm)">
+      <!-- 🎬 Video toggle button -->
+      <button id="video-toggle-btn" title="Analyze a product video">🎬</button>
+
+      <div class="input-wrapper" style="flex:1">
+        <textarea
+          id="chat-input"
+          placeholder="Ask me anything — or paste a product video URL…"
+          rows="1"
+          aria-label="Chat input"
+        ></textarea>
+        <button id="send-btn" aria-label="Send message">➤</button>
+      </div>
+    </div>
+
     <div class="input-extras">
-      <span class="input-hint">Press Enter to send · Shift+Enter for new line</span>
+      <span class="input-hint">
+        ⚡ Instant = one tap · 💬 = ask seller · 🎬 = video · Enter to send
+      </span>
       <button class="quick-chip" data-query="Find cheaper options" id="qchip-cheaper">💸 Cheaper</button>
       <button class="quick-chip" data-query="Show me the best value pick" id="qchip-best">⭐ Best Pick</button>
       <button class="quick-chip" data-query="What are the pros and cons?" id="qchip-pros">⚖️ Pros &amp; Cons</button>
@@ -131,13 +183,11 @@
 <!-- ─── Order Confirmation Modal ─────────────────────────────────────────── -->
 <div class="modal-overlay hidden" id="order-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
   <div class="modal" style="position:relative;">
-
     <div class="modal-confirm-header">
       <div class="modal-confirm-icon">🛒</div>
       <h3 id="modal-title">Confirm Your Order</h3>
       <p>This is a mock checkout — no real payment will be charged.</p>
     </div>
-
     <div class="modal-product-row">
       <img class="modal-product-img" id="modal-product-img" src="" alt="Product">
       <div class="modal-product-info">
@@ -145,7 +195,6 @@
         <div class="price" id="modal-product-price">₹0</div>
       </div>
     </div>
-
     <div class="modal-details">
       <div class="detail-row">
         <span class="label">📍 Deliver to</span>
@@ -160,14 +209,11 @@
         <span class="value">Est. 3–7 business days</span>
       </div>
     </div>
-
     <p class="modal-disclaimer">🔒 This is a simulated order. No real transaction occurs.</p>
-
     <div class="modal-actions">
       <button class="btn btn-ghost" id="order-modal-cancel">Cancel</button>
       <button class="btn btn-success" id="order-modal-confirm">✅ Confirm Order</button>
     </div>
-
   </div>
 </div>
 
@@ -176,23 +222,26 @@
   <div class="modal" style="position:relative;">
     <div class="order-success-body">
       <div class="success-icon-ring">🎉</div>
-      <h3 style="font-size: var(--text-xl);">Order Placed!</h3>
-      <p id="success-product-name" style="font-size:var(--text-base);color:var(--clr-text);font-weight:600;"></p>
+      <h3 style="font-size:var(--text-xl)">Order Placed!</h3>
+      <p id="success-product-name" style="font-size:var(--text-base);color:var(--clr-text);font-weight:600"></p>
       <div class="order-ref-code" id="success-order-ref">BW-XXXXXXXX</div>
       <div class="delivery-badge">
         <span class="icon">📦</span>
         <span id="success-delivery">Delivery in ~5 days</span>
       </div>
-      <p style="font-size:var(--text-sm);">You'll receive a confirmation shortly. This was a mock order — no real charge.</p>
+      <p style="font-size:var(--text-sm)">Mock order — no real charge. Continue shopping!</p>
       <button class="btn btn-primary" id="order-success-close">Continue Shopping</button>
     </div>
   </div>
 </div>
 
-<!-- ─── Scripts ───────────────────────────────────────────────────────────── -->
+<!-- ─── Scripts (order matters) ──────────────────────────────────────────────── -->
 <script src="/static/js/api.js"></script>
 <script src="/static/js/session.js"></script>
+<script src="/static/js/toast.js"></script>
 <script src="/static/js/search.js"></script>
+<script src="/static/js/seller.js"></script>
+<script src="/static/js/video.js"></script>
 <script src="/static/js/order.js"></script>
 <script src="/static/js/chat.js"></script>
 <script src="/static/js/agent.js"></script>

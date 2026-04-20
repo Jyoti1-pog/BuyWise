@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from agent.models import Session, Message, ProductCard, Order, OrderItem
+from agent.models import Session, Message, ProductCard, Order, OrderItem, SellerQA, VideoAnalysis
 
 
 class MessageSerializer(serializers.ModelSerializer):
@@ -49,4 +49,24 @@ class OrderSerializer(serializers.ModelSerializer):
             "id", "order_ref", "status", "total_amount", "currency",
             "payment_method", "shipping_address", "estimated_delivery_days",
             "created_at", "items",
+        ]
+
+
+class SellerQASerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SellerQA
+        fields = ["id", "product", "question", "answer", "created_at"]
+
+
+class VideoAnalysisSerializer(serializers.ModelSerializer):
+    matched_product = ProductCardSerializer(read_only=True)
+
+    class Meta:
+        model = VideoAnalysis
+        fields = [
+            "id", "video_url", "video_source_type", "thumbnail_url",
+            "extracted_product_name", "extracted_brand", "extracted_category",
+            "extracted_specs", "extracted_price_hint",
+            "video_type", "video_summary", "confidence",
+            "matched_product", "created_at",
         ]

@@ -1,38 +1,36 @@
 /**
- * agent.js — Bootstraps the BuyWise chat application.
- * Entry point: initialises all modules and starts the session.
+ * agent.js — App bootstrap. v2.
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // Initialise modules
+  // Init modules
   OrderModal.init();
   Chat.init();
+  Video.init();
 
-  // Start or resume session
+  // Start session (returns sessionId, guestId)
   await Chat.start();
 
-  // Wire compare bar trigger button
+  // Wire compare bar
   document.getElementById('compare-trigger-btn')?.addEventListener('click', () => {
     Chat.triggerCompare();
   });
 
-  // Keyboard shortcut: Escape closes modals
+  // Wire video toggle button in input area
+  // (already handled in Video.init())
+
+  // Escape key: close modals + video panel
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       OrderModal.close();
       OrderModal.closeSuccess();
+      Video.closePanel();
     }
   });
 
-  // Initial greeting from agent (displayed client-side, no API call)
+  // Dynamic greeting
   const hour = new Date().getHours();
-  const greeting =
-    hour < 12 ? 'Good morning' :
-    hour < 17 ? 'Good afternoon' :
-                'Good evening';
-
-  const welcomeMsg = document.getElementById('welcome-greeting');
-  if (welcomeMsg) {
-    welcomeMsg.textContent = `${greeting}! I'm BuyWise ✨`;
-  }
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const el = document.getElementById('welcome-greeting');
+  if (el) el.textContent = `${greeting}! I'm BuyWise ✨`;
 });

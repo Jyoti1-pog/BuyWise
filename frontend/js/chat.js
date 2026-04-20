@@ -1,8 +1,7 @@
 /**
- * chat.js — Message rendering and chat input handling.
+ * chat.js — Message rendering and chat controller. v2.
+ * Wires: send, buy (modal), quick-order (toast), compare, seller Q&A, video analysis.
  */
-
-// ─── Markdown-light parser (bold, code, newlines) ─────────────────────────────
 
 function parseMarkdown(text) {
   return text
@@ -17,22 +16,17 @@ function formatTime(date) {
   return new Intl.DateTimeFormat('en-IN', { hour: '2-digit', minute: '2-digit' }).format(date);
 }
 
-// ─── Message bubble factory ───────────────────────────────────────────────────
-
 function createBubble(role, content) {
   const row = document.createElement('div');
   row.className = `message-row ${role} animate-fade-in`;
-
   const avatarHTML =
     role === 'user'
       ? '<div class="message-avatar user">👤</div>'
       : '<div class="message-avatar ai">✨</div>';
 
-  const bubbleClass = role === 'user' ? 'user' : 'ai';
-
   row.innerHTML = `
     ${role === 'user' ? '' : avatarHTML}
-    <div class="message-bubble ${bubbleClass}">
+    <div class="message-bubble ${role}">
       <span class="bubble-text">${parseMarkdown(content)}</span>
       <span class="timestamp">${formatTime(new Date())}</span>
     </div>
@@ -41,32 +35,27 @@ function createBubble(role, content) {
   return row;
 }
 
-// ─── Typing indicator ─────────────────────────────────────────────────────────
-
 function createTypingIndicator() {
   const row = document.createElement('div');
   row.className = 'message-row typing-indicator';
   row.id = 'typing-indicator';
   row.innerHTML = `
     <div class="message-avatar ai">✨</div>
-    <div class="typing-dots">
-      <span></span><span></span><span></span>
-    </div>
+    <div class="typing-dots"><span></span><span></span><span></span></div>
   `;
   return row;
 }
 
-// ─── Chat controller ──────────────────────────────────────────────────────────
+// ─── Chat Controller ──────────────────────────────────────────────────────────
 
 const Chat = {
-  _messagesArea: null,
-  _input: null,
-  _sendBtn: null,
+  _messagesArea:  null,
+  _input:         null,
+  _sendBtn:       null,
   _welcomeScreen: null,
-  _sessionId: null,
-  _guestId: null,
-  _isLoading: false,
-  _compareQueue: [],   // queued for comparison
+  _sessionId:     null,
+  _guestId:       null,
+  _isLoading:     false,
 
   init() {
     this._messagesArea  = document.getElementById('messages-area');
@@ -74,12 +63,8 @@ const Chat = {
     this._sendBtn       = document.getElementById('send-btn');
     this._welcomeScreen = document.getElementById('welcome-screen');
 
-    // Input events
     this._input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        this.sendMessage();
-      }
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.sendMessage(); }
     });
     this._input.addEventListener('input', () => {
       this._input.style.height = 'auto';
@@ -87,15 +72,12 @@ const Chat = {
     });
     this._sendBtn.addEventListener('click', () => this.sendMessage());
 
-    // Suggestion chips
     document.querySelectorAll('.chip').forEach(chip => {
       chip.addEventListener('click', () => {
         this._input.value = chip.dataset.query || chip.textContent.trim();
         this.sendMessage();
       });
     });
-
-    // Quick chips in input area
     document.querySelectorAll('.quick-chip').forEach(chip => {
       chip.addEventListener('click', () => {
         this._input.value = chip.dataset.query || chip.textContent.trim();
@@ -103,10 +85,7 @@ const Chat = {
       });
     });
 
-    // New chat button
     document.getElementById('new-chat-btn')?.addEventListener('click', () => this.newChat());
-
-    // Check API key status
     this._checkStatus();
   },
 
@@ -123,31 +102,34 @@ const Chat = {
           pill.classList.add('fallback');
         }
       }
-    } catch {
-      /* ignore */
-    }
+    } catch { /* ignore */ }
   },
 
   async start() {
     const { sessionId, guestId } = await Session.ensureSession();
     this._sessionId = sessionId;
     this._guestId   = guestId;
+
+    // Pass session to Video and Seller modules
+    if (window.Video)  Video.setSession(sessionId);
+    if (window.Seller) Seller.setSession(sessionId);
+    if (window.Video)  Video.setChatController(this);
+    return { sessionId, guestId };
   },
 
   async newChat() {
     const { sessionId, guestId } = await Session.newSession();
     this._sessionId = sessionId;
     this._guestId   = guestId;
-    // Clear UI
     this._messagesArea.innerHTML = '';
     if (this._welcomeScreen) this._welcomeScreen.style.display = '';
     CompareState.clear();
+    if (window.Video)  Video.setSession(sessionId);
+    if (window.Seller) Seller.setSession(sessionId);
   },
 
   hideWelcome() {
-    if (this._welcomeScreen) {
-      this._welcomeScreen.style.display = 'none';
-    }
+    if (this._welcomeScreen) this._welcomeScreen.style.display = 'none';
   },
 
   appendBubble(role, content) {
@@ -159,17 +141,16 @@ const Chat = {
   },
 
   appendProducts(products) {
-    if (!products || !products.length) return;
+    if (!products?.length) return;
     this.hideWelcome();
     const section = Search.renderProductsSection(
       products,
       (p) => this._onBuyClick(p),
       (p) => this._onCompareToggle(p),
+      (p) => this._onQuickOrder(p),
     );
     this._messagesArea.appendChild(section);
     this._scrollBottom();
-
-    // Update sidebar
     this._updateSidebar();
   },
 
@@ -181,36 +162,28 @@ const Chat = {
 
   showTyping() {
     this.hideWelcome();
-    const indicator = createTypingIndicator();
-    this._messagesArea.appendChild(indicator);
+    this._messagesArea.appendChild(createTypingIndicator());
     this._scrollBottom();
   },
 
-  hideTyping() {
-    document.getElementById('typing-indicator')?.remove();
-  },
+  hideTyping() { document.getElementById('typing-indicator')?.remove(); },
 
   setLoading(loading) {
-    this._isLoading       = loading;
+    this._isLoading      = loading;
     this._sendBtn.disabled = loading;
     this._input.disabled   = loading;
-    if (loading) {
-      this.showTyping();
-    } else {
-      this.hideTyping();
-    }
+    if (loading) this.showTyping(); else this.hideTyping();
   },
 
   _scrollBottom() {
-    setTimeout(() => {
-      this._messagesArea.scrollTop = this._messagesArea.scrollHeight;
-    }, 50);
+    setTimeout(() => { this._messagesArea.scrollTop = this._messagesArea.scrollHeight; }, 50);
   },
+
+  // ─── Send Flow ─────────────────────────────────────────────────────────────
 
   async sendMessage() {
     const text = this._input.value.trim();
     if (!text || this._isLoading) return;
-
     this._input.value = '';
     this._input.style.height = 'auto';
 
@@ -219,13 +192,12 @@ const Chat = {
 
     try {
       const data = await API.ask(this._sessionId, text, this._guestId);
-
       this.hideTyping();
       if (data.reply) this.appendBubble('ai', data.reply);
       if (data.products?.length) this.appendProducts(data.products);
-
       this._sessionId = data.session_id || this._sessionId;
-      this._updateSidebar();
+      Video.setSession(this._sessionId);
+      Seller.setSession(this._sessionId);
     } catch (err) {
       this.hideTyping();
       this.appendBubble('ai', `⚠️ Something went wrong: ${err.message}. Please try again.`);
@@ -235,14 +207,10 @@ const Chat = {
     }
   },
 
-  // ─── Buy flow ─────────────────────────────────────────────────────────────
+  // ─── Buy Flow (modal) ───────────────────────────────────────────────────────
 
   _onBuyClick(product) {
-    OrderModal.show(
-      product,
-      () => this._executeOrder(product),  // confirm
-      null,                                // cancel
-    );
+    OrderModal.show(product, () => this._executeOrder(product), null);
   },
 
   async _executeOrder(product) {
@@ -269,23 +237,40 @@ const Chat = {
     }
   },
 
-  // ─── Compare flow ─────────────────────────────────────────────────────────
+  // ─── Quick Order (one-tap, no modal) ───────────────────────────────────────
+
+  async _onQuickOrder(product) {
+    try {
+      const orderData = await API.quickOrder(this._sessionId, product.id, this._guestId);
+
+      // Toast instead of modal
+      Toast.order(orderData);
+
+      // Quick bubble in chat (non-blocking)
+      this.appendBubble('ai',
+        `⚡ **Quick order placed!** ${product.name}\n` +
+        `🔖 \`${orderData.order_ref}\` · 📦 ${orderData.estimated_delivery_days}d delivery`
+      );
+
+      this._addOrderToSidebar(orderData, product);
+    } catch (err) {
+      Toast.error('Quick order failed', err.message);
+      throw err;   // Let caller reset button state
+    }
+  },
+
+  // ─── Compare Flow ───────────────────────────────────────────────────────────
 
   _onCompareToggle(product) {
-    const bar = document.getElementById('compare-bar');
+    const bar   = document.getElementById('compare-bar');
     const label = document.getElementById('compare-bar-label');
-
     if (CompareState.canCompare()) {
-      if (bar) {
-        bar.style.display = 'flex';
-        const names = CompareState.selected.map(p => p.name).join(' vs ');
-        if (label) label.textContent = names;
-      }
+      if (bar) bar.style.display = 'flex';
+      if (label) label.textContent = CompareState.selected.map(p => p.name).join(' vs ');
     } else {
       if (bar) bar.style.display = CompareState.selected.length ? 'flex' : 'none';
-      if (label && CompareState.selected.length === 1) {
+      if (label && CompareState.selected.length === 1)
         label.textContent = `${CompareState.selected[0].name} selected — pick one more`;
-      }
     }
   },
 
@@ -294,10 +279,8 @@ const Chat = {
     const [a, b] = CompareState.selected;
     CompareState.clear();
 
-    // Hide compare bar
     const bar = document.getElementById('compare-bar');
     if (bar) bar.style.display = 'none';
-    // Reset all compare buttons
     document.querySelectorAll('.card-btn-compare').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.product-card').forEach(c => c.classList.remove('selected'));
 
@@ -317,16 +300,13 @@ const Chat = {
     }
   },
 
-  // ─── Sidebar ──────────────────────────────────────────────────────────────
+  // ─── Sidebar ────────────────────────────────────────────────────────────────
 
-  _updateSidebar() {
-    /* Sidebar can be extended to show session history */
-  },
+  _updateSidebar() { /* extend later for session history */ },
 
   _addOrderToSidebar(orderData, product) {
     const list = document.getElementById('orders-sidebar-list');
     if (!list) return;
-
     const card = document.createElement('div');
     card.className = 'order-mini-card animate-fade-in';
     card.innerHTML = `
@@ -335,9 +315,7 @@ const Chat = {
       <div class="order-info">₹${Number(orderData.total).toLocaleString('en-IN')} · ${orderData.estimated_delivery_days}d delivery</div>
     `;
     list.prepend(card);
-
-    const empty = document.getElementById('sidebar-empty');
-    if (empty) empty.style.display = 'none';
+    document.getElementById('sidebar-empty')?.remove();
   },
 };
 

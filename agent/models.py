@@ -151,3 +151,77 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.quantity}× {self.product_name}"
+
+
+class VideoAnalysis(models.Model):
+    """Result of Gemini's analysis of a product video (YouTube, Reel, upload)."""
+    SOURCE_TYPES = [
+        ("youtube", "YouTube"),
+        ("instagram", "Instagram Reel"),
+        ("tiktok", "TikTok"),
+        ("upload", "Uploaded File"),
+        ("image", "Image URL"),
+        ("other", "Other URL"),
+    ]
+    VIDEO_TYPES = [
+        ("review", "Review"),
+        ("unboxing", "Unboxing"),
+        ("advertisement", "Advertisement"),
+        ("tutorial", "Tutorial"),
+        ("other", "Other"),
+    ]
+    CONFIDENCE = [
+        ("high", "High"),
+        ("medium", "Medium"),
+        ("low", "Low"),
+    ]
+
+    session = models.ForeignKey(
+        Session, on_delete=models.CASCADE, related_name="videos"
+    )
+    video_url = models.URLField(max_length=2000, blank=True)
+    video_file = models.FileField(upload_to="videos/", blank=True, null=True)
+    video_source_type = models.CharField(max_length=20, choices=SOURCE_TYPES, default="other")
+    thumbnail_url = models.URLField(max_length=2000, blank=True)
+
+    # Gemini-extracted data
+    extracted_product_name = models.CharField(max_length=300, blank=True)
+    extracted_brand = models.CharField(max_length=100, blank=True)
+    extracted_category = models.CharField(max_length=100, blank=True)
+    extracted_specs = models.JSONField(default=list)
+    extracted_price_hint = models.CharField(max_length=100, blank=True)
+    video_type = models.CharField(max_length=20, choices=VIDEO_TYPES, default="other")
+    video_summary = models.TextField(blank=True)
+    confidence = models.CharField(max_length=10, choices=CONFIDENCE, default="medium")
+    raw_gemini_response = models.TextField(blank=True)
+
+    # Linked product (if matched to catalog)
+    matched_product = models.ForeignKey(
+        ProductCard, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="video_analyses",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"VideoAnalysis: {self.extracted_product_name or 'Unknown'} [{self.confidence}]"
+
+
+class SellerQA(models.Model):
+    """Persisted Q&A thread — user asks, Gemini answers as the seller."""
+    product = models.ForeignKey(
+        ProductCard, on_delete=models.CASCADE, related_name="qa_threads"
+    )
+    question = models.TextField()
+    answer = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"Q: {self.question[:60]}"
+
